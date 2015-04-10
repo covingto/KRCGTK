@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-math3-3.2.jar"/>
+	<classpathentry kind="lib" path="lib/hamcrest-core.jar"/>
+	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/json-smart-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/junit-4.6.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.7.2.jar"/>
+	<classpathentry kind="lib" path="lib/w3c.jar"/>
+	<classpathentry kind="lib" path="lib/snappy-java-1.0.3-rc3.jar"/>
+	<classpathentry kind="lib" path="/Users/covingto/Documents/Code/picard-tools-1.129/htsjdk-1.129.jar"/>
+	<classpathentry kind="lib" path="/Users/covingto/Documents/Code/picard-tools-1.129/picard-lib.jar"/>
+	<classpathentry kind="lib" path="/Users/covingto/Documents/Code/picard-tools-1.129/picard.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
