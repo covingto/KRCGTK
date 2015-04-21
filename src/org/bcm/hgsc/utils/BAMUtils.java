@@ -165,9 +165,16 @@ public class BAMUtils {
 			//return new ConformedRead(this.rec, this.chr, this.pos[sstart], this.pos[send], Arrays.copyOfRange(ref, sstart, send), 
 			//		Arrays.copyOfRange(read, sstart, send), Arrays.copyOfRange(qual, sstart, send), Arrays.copyOfRange(pos, sstart, send),
 			//		Arrays.copyOfRange(cigar, sstart, send), this.mapQual);
-			return new ConformedRead(this.chr, this.pos[sstart], this.pos[send], Arrays.copyOfRange(ref, sstart, send), 
-					Arrays.copyOfRange(read, sstart, send), Arrays.copyOfRange(qual, sstart, send), Arrays.copyOfRange(pos, sstart, send),
-					Arrays.copyOfRange(cigar, sstart, send), this.mapQual, this.isForward());
+			return sliceToIndex(sstart, send);
+					//new ConformedRead(this.chr, this.pos[sstart], this.pos[send], Arrays.copyOfRange(ref, sstart, send), 
+					//Arrays.copyOfRange(read, sstart, send), Arrays.copyOfRange(qual, sstart, send), Arrays.copyOfRange(pos, sstart, send),
+					//Arrays.copyOfRange(cigar, sstart, send), this.mapQual, this.isForward());
+		}
+		
+		public ConformedRead sliceToIndex(int start, int end) throws Exception{
+			return new ConformedRead(this.chr, this.pos[start], this.pos[end], Arrays.copyOfRange(ref, start, end), 
+					Arrays.copyOfRange(read, start, end), Arrays.copyOfRange(qual, start, end), Arrays.copyOfRange(pos, start, end),
+					Arrays.copyOfRange(cigar, start, end), this.mapQual, this.isForward());
 		}
 		
 		public ByteContainer getReadAtGenomicPos(int pos){
@@ -302,61 +309,6 @@ public class BAMUtils {
 			}
 			//log.log(Level.WARNING, "Conforming positions: refMatchOffset: " + refMatchOffset + " hitOffset: " + hitOffset + " rightHitOffsetl: " + rightHitOffsetl + " rightHitOffset: " + rightHitOffset );
 			return new int[] { startPosition, endPosition };
-			
-			/*if (rightHitOffsetl - hitOffset < searchSpace || hitOffset - leftHitOffset < searchSpace){
-				// yes there is a nasty indel nearby (I knew it!)
-				// return the position at the refMatchOffset
-				return new int[] {this.pos[refMatchOffset], this.pos[rightHitOffset]};
-			}
-			// Note: hitOffset is now set to the leftmost MATCH_OR_MISMATCH position, assuming the above example with a search position
-			// of 5 we would now be to 4 (the last MATCH_OR_MISMATCH with a hitOffset of 3). but this would not be good enough if we are 
-			// near an indel.  So we need to look further.
-			
-			for (int i = 0; i < l; i++){
-				final byte ref = this.ref[i];
-				final byte read = this.read[i];
-				final CigarOperator c = this.cigar[i];
-				
-			}
-			
-			
-			// we are dealing with allele starts here, not ends so we only need concern ourselves with working backwards
-			// why would we need to work back to make an allele start?
-			//   do so if alignment is questionable i.e. near an indel, buffer decided automatically here
-			// TODO: make the buffer size tuneable 
-			CigarOperator[] cigarSlice = this.getCigarAtGenomicRange(
-					Math.max(this.readStart(), this.pos[hitOffset] - searchSpace), 
-					Math.min(this.readEnd(), this.pos[hitOffset] + searchSpace)
-					);
-			boolean requiresFurtherOffset = false;
-			for (int i = 0; i < cigarSlice.length; i++){
-				final CigarOperator c = cigarSlice[i];
-				if (c != CigarOperator.MATCH_OR_MISMATCH){
-					continue;
-				}
-			}
-			
-			for (int i = hitOffset; i > -1; i--){
-				final byte ref = this.ref[i];
-				final byte seq = this.read[i];
-				if (ref == seq){
-					refMatchOffset = i;
-				}
-			}
-				
-				final int thisPos = this.pos[i];
-				final CigarOperator thisCigar = this.cigar[i];
-				if (thisCigar == CigarOperator.MATCH_OR_MISMATCH){
-					lastAlleleStart = thisPos;
-				} 
-				if (thisPos > start || this.read[i] != this.ref[i]){
-					continue; // we aren't to the position yet, or we have hit the position and the bases do not match
-				}
-				else {
-					break;
-				}
-			
-			return lastAlleleStart;*/
 		}
 		
 		
