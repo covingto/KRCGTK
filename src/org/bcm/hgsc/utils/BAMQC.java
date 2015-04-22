@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Logger;
 
 import net.minidev.json.JSONObject;
 
@@ -26,6 +28,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.Parser;
+import org.apache.commons.lang3.StringUtils;
 import org.bcm.hgsc.utils.BAMUtils.ConformedRead;
 
 public class BAMQC {
@@ -33,6 +36,7 @@ public class BAMQC {
 	private final Map<String, Integer> cigarMap2 = new HashMap<String, Integer>();
 	private final Map<String, Integer> varMap1 = new HashMap<String, Integer>();
 	private final Map<String, Integer> varMap2 = new HashMap<String, Integer>();
+	private static Logger log = Logger.getLogger("");
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		Options options = new Options();
@@ -42,6 +46,10 @@ public class BAMQC {
 		options.addOption("out", true, "Output file (json)");
 		HelpFormatter formatter = new HelpFormatter();
 		CommandLine line = parser.parse(options, args);
+		
+		ConsoleHandler handler = new ConsoleHandler();
+		handler.setFormatter(Settings.defautlFormatter());
+		log.addHandler(handler);
 		
 		File bam = new File(line.getOptionValue("bam"));
 		File output = new File(line.getOptionValue("out"));
@@ -72,22 +80,27 @@ public class BAMQC {
 			pool.execute(worker);
 		}
 		pool.shutdown();
-		while (!pool.isShutdown()){
+		while (!pool.isTerminated()){
 			Thread.sleep(10000);
 		}
 		
+		log.info("Writing maps");
 		this.printMaps(output);
 	}
 	
 	public void printMaps(File output){
+		log.info("CIGAR1 KEYS: " + StringUtils.join(this.cigarMap1.keySet()));
+		log.info("VARMAP1: " + StringUtils.join(this.varMap1.keySet()));
+		
 		JSONObject value = new JSONObject();
-		value.put("r1_cigar", cigarMap1);
-		value.put("r2_cigar", cigarMap2);
-		value.put("r1_vars", varMap1);
-		value.put("r2_vars", varMap2);
+		value.put("r1_cigar", this.cigarMap1);
+		value.put("r2_cigar", this.cigarMap2);
+		value.put("r1_vars", this.varMap1);
+		value.put("r2_vars", this.varMap2);
 		try {
 			PrintWriter out = new PrintWriter(output.getAbsolutePath());
 			out.write(value.toJSONString());
+			out.flush();
 			out.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -119,6 +132,7 @@ public class BAMQC {
 		
 		@Override
 		public void run() {
+			//log.info("Runnung");
 			SamReader sam_reader = bam_interface.getSamfilereader();
 			SAMRecordIterator sri = sam_reader.query(this.sequenceName, this.start, this.end, false);
 			try{
@@ -133,7 +147,10 @@ public class BAMQC {
 					ConformedRead cr = BAMUtils.conformToReference(sr, fastaref);
 					addVars(sr.getFirstOfPairFlag() ? varMap1 : varMap2, cr);
 				}
+				//log.info("Updating");
 				updateBQCHashes();
+				//log.info("CIGAR Map keys: " + StringUtils.join(cigarMap1.keySet()));
+				//log.info("Parent CIGAR Map keys: " + StringUtils.join(bqc.cigarMap1.keySet()));
 				this.success = true;
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -182,14 +199,15 @@ public class BAMQC {
 				if (extending){
 					// have not yet opened a gap
 					if (co.equals(CigarOperator.S)){ break; }
-					else if (co.equals(CigarOperator.M) && read == ref){
+					else if (read == ref){
 						// break extension
 						addVar(map, Arrays.copyOfRange(cr.read, lmp, i + 1), Arrays.copyOfRange(cr.ref, lmp, i + 1));
 						lmp = i;
+						extending = false;
 					}
 				} else {
-					if (co.equals(CigarOperator.S)){ continue; }
-					else if (!(co.equals(CigarOperator.M) && read == ref)){
+					if (co.equals(CigarOperator.SKIPPED_REGION)){ continue; }
+					else if (!(read == ref)){
 						extending = true;
 					} else {
 						lmp = i;
