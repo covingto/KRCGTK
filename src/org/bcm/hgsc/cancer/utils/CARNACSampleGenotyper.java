@@ -50,6 +50,11 @@ public class CARNACSampleGenotyper extends SampleGenotyper{
 		headerlines.add(new VCFFormatHeaderLine("MMQ", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum mapping quality of reads supporting each allele"));
 		headerlines.add(new VCFFormatHeaderLine("MMQC", 1, VCFHeaderLineType.Integer, "Number of reads at this position that achieved maximum mapping quality"));
 		headerlines.add(new VCFFormatHeaderLine("MRQ", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total mid-read Q20 allele count"));
+		headerlines.add(new VCFFormatHeaderLine("R1C", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read1 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("R2C", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read2 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("R1QC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read1 coverage at Q20 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("R2QC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read2 coverage at Q20 for each allele"));
+		
 	}
 
 	/**
@@ -120,6 +125,10 @@ public class CARNACSampleGenotyper extends SampleGenotyper{
 		int[] alleleSumQual = new int[arraySize];
 		int[] alleleMaxMapQual = new int[arraySize];
 		int[] midReadQ20Coverage = new int[arraySize];
+		int[] r1Coverage		=	new int[arraySize];
+		int[] r2Coverage		=	new int[arraySize];
+		int[] r1Q20Coverage		=	new int[arraySize];
+		int[] r2Q20Coverage		=	new int[arraySize];
 		int totalCoverage = 0;
 		int maxMapQualCount = 0;
 
@@ -177,6 +186,17 @@ public class CARNACSampleGenotyper extends SampleGenotyper{
 					if (cr.getMapQuality() > alleleMaxMapQual[i]){
 						alleleMaxMapQual[i] = cr.getMapQuality();
 					}
+					if (cr.isRead1()){
+						r1Coverage[i]++;
+						if (qual > 20){
+							r1Q20Coverage[i]++;
+						}
+					} else {
+						r2Coverage[i]++;
+						if (qual > 20){
+							r2Q20Coverage[i]++;
+						}
+					}
 					break;
 				}
 			}
@@ -195,8 +215,11 @@ public class CARNACSampleGenotyper extends SampleGenotyper{
 		genotypeBuilder.attribute("MMQ", StringUtils.join(Utils.intArrayToIntegerList(alleleMaxMapQual), ","));
 		genotypeBuilder.attribute("MMQC", maxMapQualCount);
 		genotypeBuilder.attribute("MRQ", StringUtils.join(Utils.intArrayToIntegerList(midReadQ20Coverage), ","));
-
-
+		genotypeBuilder.attribute("R1C", StringUtils.join(Utils.intArrayToIntegerList(r1Coverage), ","));
+		genotypeBuilder.attribute("R2C", StringUtils.join(Utils.intArrayToIntegerList(r2Coverage), ","));
+		genotypeBuilder.attribute("R1QC", StringUtils.join(Utils.intArrayToIntegerList(r1Q20Coverage), ","));
+		genotypeBuilder.attribute("R2QC", StringUtils.join(Utils.intArrayToIntegerList(r2Q20Coverage), ","));
+		
 		return genotypeBuilder.make();
 	}
 }

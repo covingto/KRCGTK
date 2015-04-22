@@ -101,7 +101,7 @@ public class BAMUtils {
 	 *
 	 */
 	public static class ConformedRead{
-		// private final SAMRecord rec; // direct reference to the SAMRecord was removed to aid with memory in the hope that elements will be garbage collected faster.
+		private final SAMRecord rec;
 		private final boolean isForward;
 		final byte[] ref;
 		final byte[] read;
@@ -115,15 +115,15 @@ public class BAMUtils {
 		
 		public ConformedRead(SAMRecord rec, String chr, int mappedpos, int mapend, byte[] ref, byte[] read, byte[] qual, int[] pos, CigarOperator[] cigar, int mapQual) throws Exception{
 			//boolean forward = ! rec.getReadNegativeStrandFlag();
-			this(chr, mappedpos, mapend, ref, read, qual, pos, cigar, mapQual, ! rec.getReadNegativeStrandFlag());
+			this(rec, chr, mappedpos, mapend, ref, read, qual, pos, cigar, mapQual, ! rec.getReadNegativeStrandFlag());
 		}
 		
-		public ConformedRead(String chr, int mappedpos, int mapend, byte[] ref, byte[] read, byte[] qual, int[] pos, CigarOperator[] cigar, int mapQual, boolean forward) throws Exception{
+		public ConformedRead(SAMRecord rec, String chr, int mappedpos, int mapend, byte[] ref, byte[] read, byte[] qual, int[] pos, CigarOperator[] cigar, int mapQual, boolean forward) throws Exception{
 			int len = pos.length;
 			if (ref.length != len || read.length != len || qual.length != len || cigar.length != len){
 				throw new Exception("Arrays are not the same length");
 			}
-			// this.rec = rec;
+			this.rec = rec;
 			this.isForward = forward;
 			this.ref = ref;
 			this.read = read;
@@ -172,7 +172,7 @@ public class BAMUtils {
 		}
 		
 		public ConformedRead sliceToIndex(int start, int end) throws Exception{
-			return new ConformedRead(this.chr, this.pos[start], this.pos[end], Arrays.copyOfRange(ref, start, end), 
+			return new ConformedRead(this.rec, this.chr, this.pos[start], this.pos[end], Arrays.copyOfRange(ref, start, end), 
 					Arrays.copyOfRange(read, start, end), Arrays.copyOfRange(qual, start, end), Arrays.copyOfRange(pos, start, end),
 					Arrays.copyOfRange(cigar, start, end), this.mapQual, this.isForward());
 		}
@@ -512,6 +512,10 @@ public class BAMUtils {
 
 		public String getChr() {
 			return this.chr;
+		}
+
+		public boolean isRead1() {
+			return this.rec.getFirstOfPairFlag(); 
 		}
 
 	}
