@@ -899,7 +899,7 @@ public class BAMUtils {
 	 * 	pos;	1
 	 * to 
 	 * 	ref:	[	A	T	C	-	A	T	C	?	G	A	T	C	G	]
-	 * 	read:	[	A	T	C	G	A	T	C		G	A	T	C	G	]
+	 * 	read:	[	A	T	C	G	A	T	C		G	A	A	C	G	]
 	 * 	qual:	[	>	>	>	>	<	<	<		<	>	>	>	>	]
 	 * 	pos:	[	1	2	3	3	4	5	6	7	8	9	10	11	12	]
 	 * 	cigar:	[	M	M	M	I	M	M	M	D	M	M	M	M	M	]

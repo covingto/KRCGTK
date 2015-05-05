@@ -198,7 +198,7 @@ public class BAMQC {
 				final CigarOperator co = cr.cigar[i];
 				if (extending){
 					// have not yet opened a gap
-					if (co.equals(CigarOperator.S)){ break; }
+					if (co.equals(CigarOperator.SKIPPED_REGION)){ break; }
 					else if (read == ref){
 						// break extension
 						addVar(map, Arrays.copyOfRange(cr.read, lmp, i + 1), Arrays.copyOfRange(cr.ref, lmp, i + 1));
