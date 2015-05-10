@@ -39,21 +39,21 @@ public class CARNACSampleGenotyper extends SampleGenotyper{
 		headerlines.add(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
 		headerlines.add(new VCFFormatHeaderLine("DP", 1, VCFHeaderLineType.String, "Read Depth"));
 		headerlines.add(new VCFInfoHeaderLine("OC", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Alleles called by each caller source listed as the source file of the initial call.  These may be modified during allele resolution so the origingal position and allele for each call is listed."));
-		headerlines.add(new VCFFormatHeaderLine("AC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total coverage for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("AQC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total coverage at Q20 for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("ASQ", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Sum of the qualities for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("FC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total forward for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("RC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total reverse for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("FQC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total forward coverage at Q20 for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("RQC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total reverse coverage at Q20 for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("MR", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total mid-read coverage for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("MMQ", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum mapping quality of reads supporting each allele"));
+		headerlines.add(new VCFFormatHeaderLine("AC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total coverage for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("AQC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total coverage at Q20 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("ASQ", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Sum of the qualities for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("FC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total forward for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("RC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total reverse for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("FQC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total forward coverage at Q20 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("RQC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total reverse coverage at Q20 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("MR", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total mid-read coverage for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("MMQ", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Maximum mapping quality of reads supporting each allele"));
 		headerlines.add(new VCFFormatHeaderLine("MMQC", 1, VCFHeaderLineType.Integer, "Number of reads at this position that achieved maximum mapping quality"));
-		headerlines.add(new VCFFormatHeaderLine("MRQ", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total mid-read Q20 allele count"));
-		headerlines.add(new VCFFormatHeaderLine("R1C", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read1 for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("R2C", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read2 for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("R1QC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read1 coverage at Q20 for each allele"));
-		headerlines.add(new VCFFormatHeaderLine("R2QC", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Total read2 coverage at Q20 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("MRQ", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total mid-read Q20 allele count"));
+		headerlines.add(new VCFFormatHeaderLine("R1C", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total read1 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("R2C", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total read2 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("R1QC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total read1 coverage at Q20 for each allele"));
+		headerlines.add(new VCFFormatHeaderLine("R2QC", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Total read2 coverage at Q20 for each allele"));
 		
 	}
 
