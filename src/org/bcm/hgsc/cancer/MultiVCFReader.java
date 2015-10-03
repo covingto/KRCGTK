@@ -156,10 +156,9 @@ public class MultiVCFReader {
 					final Allele ref = thisVariant.getReference();
 					final Allele a = variantAlleles.get(j);
 					final int pos = thisVariant.getStart();
-					sbuilder.append(pos + "~");
+					sbuilder.append("[" + pos + "~");
 					sbuilder.append(ref.getBaseString() + ">");
-					sbuilder.append(a.getBaseString());
-					sbuilder.append(",");
+					sbuilder.append(a.getBaseString() + "]");
 				}
 				sbuilder.append(")");
 				callerHits[i] = sbuilder.toString();

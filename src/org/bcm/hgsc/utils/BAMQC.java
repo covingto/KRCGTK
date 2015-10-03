@@ -44,6 +44,7 @@ public class BAMQC {
 		options.addOption("bam", true, "BAM file");
 		options.addOption("ref", true, "Reference fasta files, requires indexing");
 		options.addOption("out", true, "Output file (json)");
+		options.addOption("cores", true, "Number of cores to run [12]");
 		HelpFormatter formatter = new HelpFormatter();
 		CommandLine line = parser.parse(options, args);
 		
@@ -54,11 +55,12 @@ public class BAMQC {
 		File bam = new File(line.getOptionValue("bam"));
 		File output = new File(line.getOptionValue("out"));
 		File ref = new File(line.getOptionValue("ref"));
+		Integer cores = Integer.valueOf(line.getOptionValue("cores", "12"));
 		BAMQC bqc = new BAMQC();
-		bqc.run(bam, ref, output);
+		bqc.run(bam, ref, output, cores);
 	}
 	
-	public void run(File bam, File ref, File output) throws Exception{
+	public void run(File bam, File ref, File output, Integer cores) throws Exception{
 		final int buffer = 1000000;
 		// activate file readers
 		final IndexedFastaSequenceFile fastaref = new IndexedFastaSequenceFile(ref);
@@ -66,7 +68,7 @@ public class BAMQC {
 		final BAMInterface bam_interface = new BAMInterface(bam, bam.getName(), "test");
 		
 		// start the pool
-		final ExecutorService pool = Executors.newFixedThreadPool(12);
+		final ExecutorService pool = Executors.newFixedThreadPool(cores);
 		for (final SAMSequenceRecord r : seq_dict.getSequences()){
 			int end_pos = 0;
 			while ((end_pos + buffer) < r.getSequenceLength()){
@@ -145,6 +147,13 @@ public class BAMQC {
 					addCigar(sr.getFirstOfPairFlag() ? cigarMap1 : cigarMap2, cigar);
 					// find the variants
 					ConformedRead cr = BAMUtils.conformToReference(sr, fastaref);
+					for (byte base : cr.ref){
+						if (base == ' '){
+							System.out.print("Error in generating reference");
+							System.out.print(sr.toString());
+							System.out.print(cr.toString());
+						}
+					}
 					addVars(sr.getFirstOfPairFlag() ? varMap1 : varMap2, cr);
 				}
 				//log.info("Updating");
@@ -217,7 +226,8 @@ public class BAMQC {
 		}
 
 		private void addVar(Map<String, Integer> map, byte[] read, byte[] ref) {
-			final String allele = new String(read) + ">" + new String(ref);
+			
+			final String allele = new String(ref) + ">" + new String(read);
 			synchronized(map){
 				if (!map.containsKey(allele)){
 					map.put(allele, 1);

@@ -12,12 +12,14 @@ import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.SequenceUtil;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -218,10 +220,12 @@ public class BAMUtils {
 		 * pos:			[	1	2	3	4	-1	-1	-1	5	6	7	8	9	10	11	12	]
 		 * cigar:		[	m	m	m	m	i	i	i	m	m	m	m	m	d	d	d	]
 		 * i:			[	0	1	2	3	4	5	6	7	8	9	10	11	12	13	14	]
+		 * 
 		 * read:		[	a	t	c	t	a	t	a	a	t	g	c	a	-	-	-	]
 		 * pos:			[	1	2	3	4	-1	-1	-1	5	6	7	8	9	10	11	12	]
 		 * cigar:		[	m	m	m	m	i	i	i	m	m	m	m	m	d	d	d	]
 		 * i:			[	0	1	2	3	4	5	6	7	8	9	10	11	12	13	14	]
+		 * 
 		 * read:		[	a	t	c	t	-	-	-	a	t	g	c	a	-	-	-	]
 		 * pos:			[	1	2	3	4	-	-	-	5	6	7	8	9	10	11	12	]
 		 * cigar:		[	m	m	m	m	-	-	-	m	m	m	m	m	d	d	d	]
@@ -322,8 +326,8 @@ public class BAMUtils {
 		 * Read1:2-6				[	C	A	A	T	C	]
 		 * Read2:			[	A	T	C	G	A	T	]
 		 * Read2:2-6				[	C	A	A	T	.	]
-		 * @param start
-		 * @param stop
+		 * @param start - genomic start position (inclusive)
+		 * @param stop  - genomic end position (inclusive)
 		 * @return
 		 */
 		public ByteContainer getReadAtGenomicRange(int start, int stop){
@@ -425,6 +429,7 @@ public class BAMUtils {
 			return ints.toArray(new Integer[ints.size()]);
 		}
 		
+		@Override
 		public String toString(){
 			return this.chr + "\n" + this.mappedpos + "\n" + 
 					this.pos[0] + "\t" + this.pos[this.pos.length - 1] + "\n" + new String(this.ref) + "\n" + new String(this.read) + "\n" + 
@@ -515,7 +520,9 @@ public class BAMUtils {
 		}
 
 		public boolean isRead1() {
-			return this.rec.getFirstOfPairFlag(); 
+			// we could use this.rec.getFirstOfPairFlag() but really don't want to since this shorts if the data aren't really paired
+			// instead use 64
+			return ((this.rec.getFlags() & 64) != 0); 
 		}
 
 	}
@@ -651,13 +658,14 @@ public class BAMUtils {
 				Byte[] oldbyte = sequences.get(i);
 				byte[] newbyte = new byte[oldbyte.length];
 				for (int j = 0; j < oldbyte.length; j++){
-					newbyte[j] = (byte) oldbyte[j];
+					newbyte[j] = oldbyte[j];
 				}
 				seqs[i] = new String(newbyte);
 			}
 			return seqs;
 		}
 		
+		@Override
 		public String toString(){
 			int maxMapQCount = 0;
 			int totCount = 0;
@@ -700,9 +708,66 @@ public class BAMUtils {
 		}
 	}
 	
-	public static List<ConformedRead> getConformedReads(BAMInterface bi, String chr, int start, int end, boolean excludeDuplicateUnmapped, IndexedFastaSequenceFile fastaref){
+	public static class CRIterator implements Iterator<ConformedRead>, Closeable{
+		
+		private final String chr;
+		private final int start;
+		private final int end;
+		private final int f;
+		private final int F;
+		private final IndexedFastaSequenceFile fastaref;
+		private final SAMRecordIterator sri;
+		
+		public CRIterator(SamReader sam, String chr, int start, int end, int f, int F, IndexedFastaSequenceFile fastaref){
+			this.sri = sam.query(chr, start, end, false);
+			this.chr = chr;
+			this.start = start;
+			this.end = end;
+			this.f = f;
+			this.F = F;
+			this.fastaref = fastaref;
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return this.sri.hasNext();
+		}
+
+		@Override
+		public ConformedRead next() {
+			try{
+				final SAMRecord sr = this.sri.next();
+				if (((sr.getFlags() & this.F) != 0) // F are the flags to remove: if F and flag are not 0: reject.  F = 0 indicates no filtering
+						|| ((sr.getFlags() & this.f) != this.f) // f are the required flags: if f and flag are not f: reject f = 0 indicates no selection
+						){
+					// log.log(Level.FINEST, "Skipped sam record because of sam flag mask: " + sr.getSAMString());
+					return null;
+				}
+				
+				final ConformedRead cr = BAMUtils.conformToReference(sr, fastaref);
+				return cr;
+			}catch (Exception e){
+				log.log(Level.WARNING, "Error proocessing conformed read", e);
+				return null;
+			}
+		}
+
+		@Override
+		public void remove() {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void close() throws IOException {
+			this.sri.close();
+		}
+		
+	}
+	
+	public static List<ConformedRead> getConformedReads(BAMInterface bi, String chr, int start, int end, int f, int F, IndexedFastaSequenceFile fastaref){
 		final SamReader sam = bi.getSamfilereader();
-		List<ConformedRead> reads = getConformedReads(sam, chr, start, end, excludeDuplicateUnmapped, fastaref);
+		List<ConformedRead> reads = getConformedReads(sam, chr, start, end, f, F, fastaref);
 		try {
 			sam.close();
 		} catch (IOException e) {
@@ -711,33 +776,46 @@ public class BAMUtils {
 		return reads;
 	}
 	
-	public static List<ConformedRead> getConformedReads(SamReader sam, String chr, int start, int end, boolean excludeDuplicateUnmapped){
-		return getConformedReads(sam, chr, start, end, excludeDuplicateUnmapped, null);
+	public static List<ConformedRead> getConformedReads(SamReader sam, String chr, int start, int end, int f, int F){
+		return getConformedReads(sam, chr, start, end, f, F, null);
 	}
 	
-	public static List<ConformedRead> getConformedReads(SamReader sam, String chr, int start, int end, boolean excludeDuplicateUnmapped, IndexedFastaSequenceFile fastaref){
+	public static List<ConformedRead> getConformedReads(SamReader sam, String chr, int start, int end, int f, int F, IndexedFastaSequenceFile fastaref){
 		List<ConformedRead> reads = new ArrayList<ConformedRead>();
-		SAMRecordIterator sri = sam.query(chr, start, end, false);
-		while (sri.hasNext()){
+		CRIterator cri = new CRIterator(sam, chr, start, end, f, F, fastaref);
+		while (cri.hasNext()){
 			try{
-				final SAMRecord sr = sri.next();
-				if (excludeDuplicateUnmapped && (sr.getDuplicateReadFlag() || sr.getNotPrimaryAlignmentFlag() || sr.getReadUnmappedFlag())){
-					continue;
+				final ConformedRead cr = cri.next();
+				if (cr != null){
+					reads.add(cr);
 				}
-				final ConformedRead cr = BAMUtils.conformToReference(sr, fastaref);
-				reads.add(cr);
 			}catch (Exception e){
 				log.log(Level.WARNING, "Error proocessing conformed read", e);
 				continue;
 			}
 		}
-		sri.close();
+		try {
+			cri.close();
+		} catch (IOException e) {
+			log.log(Level.SEVERE, "Error in closing conformed read iterator");
+			e.printStackTrace();
+		}
 		return reads;
 	}
 	
+	public static Iterator<ConformedRead> getConformedReadsIterator(SamReader sam, String chr, int start, int end, int f, int F, IndexedFastaSequenceFile fastaref){
+		return new CRIterator(sam, chr, start, end, f, F, fastaref);
+	}
+	
+	
+	
 	public static Variant genotype(SamReader sam, String chr, int pos, String variant) throws Exception{
+		return genotype(sam, chr, pos, variant, 0, 1284); /*  1284 = unmapped, not primary align, duplicate*/
+	}
+	
+	public static Variant genotype(SamReader sam, String chr, int pos, String variant, int f, int F) throws Exception{
 		Variant var = new Variant(chr, pos);
-		List<ConformedRead> reads = BAMUtils.getConformedReads(sam, chr, pos, pos, true);
+		List<ConformedRead> reads = BAMUtils.getConformedReads(sam, chr, pos, pos, f, F);
 		
 		for (ConformedRead cr : reads){
 			var.add(cr.getRefAtGenomicPos(pos), cr.getReadAtGenomicPos(pos), cr.getQualAtGenomicPos(pos), cr.getMapQuality(), pos);
@@ -919,13 +997,15 @@ public class BAMUtils {
 			throw new SAMException("Cannot create reference from SAMRecord with no CIGAR, read: " + rec.getReadName());
 		}
 		for (final CigarElement cigarElement : cigar.getCigarElements()) {
+			final CigarOperator cigElOp = cigarElement.getOperator();
+			if (cigElOp == CigarOperator.HARD_CLIP || cigElOp == CigarOperator.PADDING){ continue; }
 			maxOutputLength += cigarElement.getLength();
 		}
 		byte[] refseq;
 		boolean fromRead;
 		if (fastaref != null){
 			fromRead = false;
-			refseq = fastaref.getSubsequenceAt(rec.getReferenceName(), mapPos, mapPos + maxOutputLength).getBases();
+			refseq = SynchronousIndexedFastaReader.getSubsequenceAt(fastaref, rec.getReferenceName(), mapPos, mapPos + maxOutputLength).getBases();
 		} else {
 			refseq = SequenceUtil.makeReferenceFromAlignment(rec, true);
 			fromRead = true;
@@ -956,7 +1036,20 @@ public class BAMUtils {
 						readArray[arrayPos + i] = unk;
 						posArray[arrayPos + i] = gpos;
 						gpos++;
-						cigarArray[arrayPos + i] = CigarOperator.DELETION;
+						cigarArray[arrayPos + i] = cigElOp;
+					}
+					arrayPos += cigElLen;
+					refPos += cigElLen;
+				} else if (cigElOp == CigarOperator.N){
+					// skips (introns according to the spec) aren't really deletions in the genomic sense so calling them unk in our vocabulary is not correct.
+					// instead they are labeled dot so that other applications can deal with them.
+					for (int i = 0; i < cigElLen; i++){
+						refArray[arrayPos + i] = refseq[refPos + i];
+						qualArray[arrayPos + i] = dot;
+						readArray[arrayPos + i] = dot;
+						posArray[arrayPos + i] = gpos;
+						gpos++;
+						cigarArray[arrayPos + i] = cigElOp;
 					}
 					arrayPos += cigElLen;
 					refPos += cigElLen;
@@ -967,12 +1060,12 @@ public class BAMUtils {
 						else { refArray[arrayPos + i] = unk; }
 						qualArray[arrayPos + i] = qual[seqPos + i];
 						readArray[arrayPos + i] = seq[seqPos + i];
-						cigarArray[arrayPos + i] = CigarOperator.INSERTION;
+						cigarArray[arrayPos + i] = cigElOp;
 					}
 					if (fromRead){ refPos += cigElLen; }
 					arrayPos += cigElLen;
 					seqPos += cigElLen;
-				} else if (cigElOp == CigarOperator.MATCH_OR_MISMATCH || cigElOp == CigarOperator.SOFT_CLIP){
+				} else if (cigElOp == CigarOperator.MATCH_OR_MISMATCH || cigElOp == CigarOperator.SOFT_CLIP || cigElOp == CigarOperator.EQ || cigElOp == CigarOperator.X){
 					for (int i = 0; i < cigElLen; i++){
 						// everything updates
 						refArray[arrayPos + i] = refseq[refPos + i];
@@ -985,6 +1078,8 @@ public class BAMUtils {
 					refPos += cigElLen;
 					arrayPos += cigElLen;
 					seqPos += cigElLen;
+				} else if (cigElOp == CigarOperator.HARD_CLIP || cigElOp == CigarOperator.PADDING) { 
+					continue; 
 				} else {
 					log.log(Level.SEVERE, "Found unknown operator " + cigElOp);
 					throw new Exception("Unknown operator in read: " + rec.toString());
@@ -1068,7 +1163,7 @@ public class BAMUtils {
 		//VarType vartype = VarType.valueOf(args[5]);
 		
 		SamReader samReader = SamReaderFactory.makeDefault().open(new File(inBamName));
-		List<ConformedRead> conformedReads = getConformedReads(samReader, chr, start, end, true);
+		List<ConformedRead> conformedReads = getConformedReads(samReader, chr, start, end, 0, 0);
 		for (ConformedRead c : conformedReads){
 			System.out.println("NewRead");
 			System.out.println("Reference:    " + new String(c.ref));

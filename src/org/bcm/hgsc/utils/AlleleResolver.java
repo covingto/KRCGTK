@@ -7,6 +7,7 @@ import htsjdk.variant.variantcontext.Allele;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bcm.hgsc.utils.BAMUtils.ConformedRead;
 
 
@@ -60,9 +62,15 @@ public class AlleleResolver {
 			if (this.reference == null){
 				throw new Exception ("reference may not be null");
 			} else {
-				// add the reference to the set anyway
+				// add the reference to the set anyway, note that the alleles may already contain the reference, that's OK.
 				this.alleles.add(Allele.create(this.reference, true));
 			}
+		}
+		
+		@Override
+		public String toString(){
+			return this.contig + ":" + this.start + "(" + this.sliceStart + ")" + "-" + this.end + "(" + this.sliceEnd + ")" + "\n" +
+					StringUtils.join(this.alleles, ", ") + "[" + new String(this.reference) + "]";
 		}
 
 		public int getSliceStart(){
@@ -113,97 +121,82 @@ public class AlleleResolver {
 				boolean isSNP = false; // initialized to false, we will set this to true if the alleles only support SNP
 				int maxLen = reference.length;
 				int minLen = Integer.MAX_VALUE;
+				int rightoffset = Integer.MAX_VALUE;
+				int leftoffset = Integer.MAX_VALUE;
 				// fallback if there are no alleles
 				if (this.alleles.size() == 0 ){ 
+					log.finer("Allele length is 0");
 					return this;
 				}
 				for (Allele a : this.alleles){
 					//log.log(Level.FINE, "Checking " + a.toString());
 					maxLen = maxLen > a.length() ? maxLen : a.length();
 					minLen = minLen < a.length() ? minLen : a.length();
+					if (!a.isReference()){
+						
+						final int a_rightoffset = getRightOffset(a.getBases(), reference);
+						final int a_leftoffset = correctLeftOffset(a.getBases(), reference, getLeftOffset(a.getBases(), reference), a_rightoffset);
+						// get the min of each left and right offset
+						rightoffset = a_rightoffset < rightoffset ? a_rightoffset : rightoffset;
+						leftoffset = a_leftoffset < leftoffset ? a_leftoffset : leftoffset;
+					}
 				}
-				if (maxLen == 1){
-					//log.log(Level.FINER, "No reduction required");
+				if ((maxLen == 1) || (leftoffset == 0 && rightoffset == 0)){
+					log.log(Level.FINER, "No reduction required");
 					return this; // this is the simplest way in which to represent these data
-				}
-				//log.log(Level.FINE, "minlength: " + minLen + " maxlength: " + maxLen);
-				// pass through all alleles in the set to get the right chewback amount
-				int rightoffset = 0;
-				findrightposition: for (int i = 0; i < minLen; i++){
-					for (Allele a : this.alleles){
-						if (a.isReference()){
-							continue;
-						}
-						//System.out.println(a.toString() + " length: " + a.length() + " chewback: " + i);
-						//System.out.println(new String(reference) + " length: " + reference.length + " chewback: " + i);
-						// add a -1 offset to the length
-						if (a.getBases()[a.length() - i - 1] != reference[reference.length - i - 1]){
-							break findrightposition;
-						}
-					}
-					rightoffset = i + 1;
-				}
-				
-				// pass through all alleles in the set to get the last (rightmost) agreeing position
-				// we must have checked the rightoffset first as this will define where the alleles must end
-				int leftoffset = 0;
-				// NOTE: this.buffer > 0 indicates that the alleles were initially buffered, so we can't collapse beyond the base size.
-				findleftposition: for (int i = (this.buffer > 0 && minLen > 1 ? 1 : 0); i < minLen - rightoffset; i++){
-					for (Allele a : this.alleles){
-						if (a.isReference()){
-							continue;
-						}
-						if (a.getBases()[i] != reference[i]){
-							break findleftposition;
-						}
-					}
-					leftoffset = i; // this is never reached if the second base is not all equal
 				}
 				
 				// special case: if minLen == maxLen then this is actually an onp (snp, dnp, tnp, etc)
 				// therefore we must index up the leftoffset 
 				if (minLen == maxLen){
-					leftoffset++;
 					isSNP = true;
+				} else {
+					isSNP = false;
+					leftoffset = 0 > (leftoffset - 1) ? 0 : (leftoffset - 1); // decriment the left offset since this is an indel it must be anchored by reference
 				}
+				
+				if (leftoffset >= (minLen - rightoffset)){
+					log.log(Level.FINER, "Reduction not possible: minLength: " + minLen + " leftoffset: " + leftoffset + " rightoffset: " + rightoffset + "\nAlleles: " + StringUtils.join(this.alleles, ", "));
+					return this;
+				}
+				
+				//
+				// This section uses the offsets calculated from above and generates the new allele sets that will be used, removing those that are the same as reference.
 				
 				Set<Allele> newAlleles = new HashSet<Allele>();
 				// Filter alleles from the set, we are just awash in alleles that are really of low quality.  Added a freature that an allele must be present at least a minimal number of times to be considered valid.
 				try {
 					// handle the reference allele
 					byte[] newreference = this.reference;
-					if (leftoffset < this.reference.length - rightoffset){
-						newreference = Arrays.copyOfRange(this.reference, leftoffset, this.reference.length - rightoffset);
-					} else {
+					// if (leftoffset < this.reference.length - rightoffset){
+					newreference = Arrays.copyOfRange(this.reference, leftoffset, this.reference.length - rightoffset);
+					//} else {
 						// this is very strange, what alleles were sequenced anyway?
 						// no matter, clear the offsets and just go with what we have
-						log.warning("Left and right offsets do not conform: " + leftoffset + " !< " + this.reference.length + " - " + rightoffset);
-						leftoffset = 0;
-						rightoffset = 0;
-					}
+					//	log.warning("Left and right offsets do not conform: " + leftoffset + " !< " + this.reference.length + " - " + rightoffset);
+					//	leftoffset = 0;
+					//	rightoffset = 0;
+					//}
 					// the reference is always added
-					newAlleles.add(Allele.create(newreference, true));
+					final Allele newReferenceAllele = Allele.create(newreference, true);
+					newAlleles.add(newReferenceAllele);
+					log.finest("Reference bases are: " + newReferenceAllele.getBaseString());
 					for (Allele a : this.alleles){
-						byte[] tmpAllele = Arrays.copyOfRange(a.getBases(), leftoffset, a.length() - rightoffset);
-						// tmpAllele[0] == newreference[0] ensures that this isn't a runaway alignment.  The reference and position are anchored by a similar base
+						final byte[] tmpAllele = Arrays.copyOfRange(a.getBases(), leftoffset, a.length() - rightoffset);
 						try {
-							if (! Arrays.equals(tmpAllele, newreference)){ 
+							final Allele newAllele = Allele.create(tmpAllele, false);
+							// only add if the allele does not match the reference, others are handled in the set by .equals in the set
+							if (!newReferenceAllele.basesMatch(newAllele)){ 
+								log.finest("Plan to add allele with bases: " + newAllele.getBaseString());
 								// this is a non-reference allele, so we get to add it if it passes some checks
-								Allele newAllele = Allele.create(tmpAllele, false);
 								if (isSNP){
 									if (tmpAllele.length == newreference.length){
-										
 										newAlleles.add(newAllele);
 									} else {
 										log.warning("Wanted a SNP but allele length was not 1, this really shouldn't happen");
 									}
 								} else {
-									// Commented by KRC; issue is when the variant actually is an indel but there are variant reads to the left and right
-									//if (tmpAllele[0] != newreference[0]){
-									//	log.warning("Wanted an indel but anchoring base is not correct: " + a.toString());
-									//} else {
 									newAlleles.add(newAllele);
-									//}
 								}
 							}
 						} catch (Exception e) {
@@ -228,6 +221,55 @@ public class AlleleResolver {
 				}
 				return this;
 			}
+		}
+		
+		public static int getRightOffset(byte[] a, byte[] b){
+			int minLength = a.length < b.length ? a.length : b.length;
+			for (int i = 0; i < minLength; i++){
+				if (getByteAtRightOffset(a, i) != getByteAtRightOffset(b, i)){
+					return i;
+				}
+			}
+			return 0; // default is no offsetting, this is less risky
+		}
+		
+		public static int getLeftOffset(byte[] a, byte[] b){
+			int minLength = a.length < b.length ? a.length : b.length;
+			for (int i = 0; i < minLength; i++){
+				if (getByteAtLeftOffset(a, i) != getByteAtLeftOffset(b, i)){
+					return i;
+				}
+			}
+			return 0;
+		}
+		
+		public static int correctLeftOffset(byte[] a, byte[] b, int left, int right){
+			int minlen = a.length < b.length ? a.length : b.length;
+			if ((left + right) > minlen){
+				int newleft = left - (minlen - left - right) * -1;
+				return newleft;
+			} else {
+				return left;
+			}
+		}
+		
+		// sure this could be in-lined but why not keep it clear
+		private static byte getByteAtLeftOffset(byte[] ba, int offset) {
+			// offset 0 ==> return first base
+			// offset ba.length ==> return last base
+			if (offset >= ba.length){
+				throw new IndexOutOfBoundsException("Offset is greater than the array length");
+			}
+			return ba[offset];
+		}
+
+		private static byte getByteAtRightOffset(byte[] ba, int offset){
+			// offset 0 ==> return last base
+			// offset ba.length ==> return first base
+			if (offset >= ba.length){
+				throw new IndexOutOfBoundsException("Offset is greater than the array length");
+			}
+			return ba[ba.length - (offset + 1)];
 		}
 
 		public String getChr() {
@@ -263,9 +305,11 @@ public class AlleleResolver {
 	 * @throws Exception 
 	 */
 	public static AlleleSet resolveAlleles(List<ConformedRead> reads, String contig, int start, int end, ResolutionType resolution, IndexedFastaSequenceFile fastaref, int buffer) throws Exception{
-
+		log.log(Level.FINEST, "Processing " + reads.size() + " reads");
 		List<Allele> alleles = new ArrayList<Allele>();
-		parseReads: for (ConformedRead cr : reads){
+		int cri = 0;
+		parseReads: for (final ConformedRead cr : reads){
+			cri += 1;
 			if (cr.readStart() > start || cr.readEnd() < end){ continue; }
 			//System.out.println("Debug: parsing conformed read");
 			//System.out.println(cr.toString());
@@ -282,27 +326,35 @@ public class AlleleResolver {
 					} else if (crEnd > end && crEnd - crStart < 50){
 						return resolveAlleles(reads, contig, start, crEnd, resolution, fastaref, buffer);
 					} else {
+						// There is no need to expand here
 						break;
 					}
 				case MINIMALEXPANDING:
 					if (crStart < start){
 						return resolveAlleles(reads, contig, crStart, end, resolution, fastaref, buffer);
 					} else {
+						// There is no need to expand here
 						break;
 					}
 				case NOEXPANDING:
-					if (crStart < start || crEnd > end){
-						// log.log(Level.WARNING, "Missed expansion of allele " + cr.toString() + " crStart: " + crStart + " start: " + start + " crEnd: " + crEnd + " end: " + end);
-						continue parseReads;
-					} else {
-						break;
-					}
+					break;
+//					if (crStart < start || crEnd > end){
+//						log.log(Level.FINEST, "Missed expansion of allele " + cr.toString() + " crStart: " + crStart + " start: " + start + " crEnd: " + crEnd + " end: " + end);
+//						//continue parseReads;
+//					} else {
+//						// There is no need to expand here
+//						//log.log(Level.WARNING, "Missed expansion of allele " + cr.toString() + " crStart: " + crStart + " start: " + start + " crEnd: " + crEnd + " end: " + end + " breaking!!!");
+//						break;
+//					}
 				default:
-					log.log( Level.WARNING, "Hit theoretically unreachable code");
-					continue parseReads;
+					{
+						log.log( Level.WARNING, "Hit theoretically unreachable code");
+						continue parseReads;
+					}
 			}
 			// create a new Allele by slicing the conformed read to start and end
 			byte[] seqAllele = cr.getSeqAllele(start, end).bytes;
+			// log.log(Level.FINEST, "Checking allele " + new String(seqAllele));
 			if (seqAllele.length < 1){
 				log.log(Level.SEVERE, "Generated empty allele" + cr.toString() + " crStart: " + crStart + " start: " + start + " crEnd: " + crEnd + " end: " + end);
 				continue parseReads;
@@ -313,27 +365,9 @@ public class AlleleResolver {
 					continue parseReads;
 				}
 			}
-//			checkReference: if (reference == null){
-//				byte[] tmpreference = ConformedRead.removePlaceholders(cr.getRefAtGenomicRange(start, end)).bytes;
-//				for (int i = 0; i < tmpreference.length; i++){
-//					if (tmpreference[i] == BAMUtils.dot || tmpreference[i] == BAMUtils.n || tmpreference[i] == BAMUtils.zero || tmpreference[i] == BAMUtils.unk){
-//						log.log(Level.ALL, "Reference lookup brokd at i = " + i + " tmpreference = " + new String(tmpreference));
-//						break checkReference;
-//					}
-//				}
-//				reference = tmpreference;
-//				alleles.add(Allele.create(reference, true));
-//			}
-			
-			// the reference sequence is questionable around soft clipped bases, therefore, we must compare the allele at this stage and only add if the allele is explicitly reference
-			//System.out.println("Adding allele to set");
+			// log.log(Level.FINEST, "Processed " + cri);
 			alleles.add(Allele.create(seqAllele, false));
 		}
-		
-		//System.out.println("Allele set complete");
-//		if (reference == null){
-//			throw new Exception("Reference can not be null");
-//		}
 		log.log(Level.FINE, "Generated allele set with " + alleles.size() + " acceptable reads");
 		
 		// initial simplification of the allele set
@@ -341,14 +375,19 @@ public class AlleleResolver {
 		Set<Allele> newAlleles = new HashSet<Allele>();
 		Map<Allele, Integer> alleleCount = Utils.countOccurrences(alleles);
 		// filter the alleles
-		for (Entry<Allele, Integer> entry : alleleCount.entrySet()){
+		final Allele referenceAllele = Allele.create(SynchronousIndexedFastaReader.getSubsequenceAt(fastaref, contig, start, end).getBases(), true);
+		newAlleles.add(referenceAllele);
+		for (final Entry<Allele, Integer> entry : alleleCount.entrySet()){
+			if (referenceAllele.basesMatch(entry.getKey())){
+				continue;
+			}
 			if (entry.getValue() >= AlleleResolver.minAlleleCount){
 				newAlleles.add(entry.getKey());
 			} 
-			//else {
-			//	log.log(Level.FINE, "Discarded allele " + entry.getKey().toString() + " because of insufficient coverage " + entry.getValue() + " Actual frequency was " + Collections.frequency(alleles, entry.getKey()));
-			//}
+			else {
+				log.log(Level.FINEST, "Discarded allele " + entry.getKey().toString() + " because of insufficient coverage (" + entry.getValue() + "<" + AlleleResolver.minAlleleCount + "). Actual frequency was " + Collections.frequency(alleles, entry.getKey()));
+			}
 		}
-		return new AlleleSet(contig, start, end, newAlleles, fastaref.getSubsequenceAt(contig, start, end).getBases(), buffer);
+		return new AlleleSet(contig, start, end, newAlleles, SynchronousIndexedFastaReader.getSubsequenceAt(fastaref, contig, start, end).getBases(), buffer);
 	}
 }
