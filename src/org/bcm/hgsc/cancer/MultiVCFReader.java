@@ -180,9 +180,9 @@ public class MultiVCFReader {
 			throw new Exception("Fasta sequence dictionary is null");
 		}
 		this.currentSequenceRegion = this.sequenceDict.getSequence(this.currentSequenceRecordIndex);
-		final VCFCodec vcfCodec = new VCFCodec();
-		boolean requireIndex=false;
 		for (File vcf : vcfFiles){
+			final VCFCodec vcfCodec = new VCFCodec();
+			boolean requireIndex=false;
 			FeatureReader<VariantContext> reader = AbstractFeatureReader.getFeatureReader(
 					vcf.getAbsolutePath(), vcfCodec, requireIndex);
 			final String key = vcf.getAbsolutePath();
