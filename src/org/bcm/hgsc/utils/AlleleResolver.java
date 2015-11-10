@@ -240,7 +240,7 @@ public class AlleleResolver {
 					return i;
 				}
 			}
-			return 0;
+			return minLength - 1;
 		}
 		
 		public static int correctLeftOffset(byte[] a, byte[] b, int left, int right){

@@ -73,5 +73,23 @@ public class TestAlleleResolver {
 		assertEquals("Failed to get corrected left", 1, left_c);
 		
 	}
+	
+	@Test
+	public void testSimplifyAlleleProblemTestCases(){
+		// this generated the wrong output at some point
+		// returned TC and TCCCCT when it should have returned C and CCCCT
+		byte[] a = new String("TC").getBytes();
+		byte[] b = new String("TCCCCT").getBytes();
+		int left = AlleleSet.getLeftOffset(a, b);
+		int right = AlleleSet.getRightOffset(a, b);
+		int left_c = AlleleSet.correctLeftOffset(a, b, left, right);
+		assertEquals("Failed to get left offset", 1, left);
+		assertEquals("Failed to get right offset", 0, right);
+		assertEquals("Failed to get corrected left", 1, left_c);
+		// solution, the default for @ref AlleleSet.getLeftOffset() was sto return 
+		// 0 if there were no matches.  This should be to return the index position of the last
+		// available base (minLength - 1) as the offset.  Fixed and re-tested.  All tests pass 
+		// KRC 10Nov2015
+	}
 
 }
