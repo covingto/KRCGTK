@@ -284,6 +284,7 @@ public class VCFMergeAndAnnotate {
 					// IndexedFastaSequenceFile fasta = new IndexedFastaSequenceFile(this.fastafile);
 					for (BAMInterface bi : baminterfaces) {
 						final SamReader sam = bi.getSamfilereader();
+						
 						final List<ConformedRead> reads = new ArrayList<ConformedRead>(1000);
 						sampleReads.put(bi.getSampleName(), reads);
 						Iterator<ConformedRead> cri = BAMUtils.getConformedReadsIterator(
@@ -602,6 +603,7 @@ public class VCFMergeAndAnnotate {
 		options.addOption("p", true, "padding to be applied around allele sets (based on buffer).  padding prevents expansion of alleles but does not prevent re-genotyping (nothing does)");
 		options.addOption("minExp", false, "provide minimal expansion of alleles, alleles only expand when SNP is beside INDEL");
 		options.addOption("nThreads", true, "number of threads in which to process variants");
+		options.addOption("maxSize", true, "maximum size of event to report, deletions larger than this size will be omitted from the output [20]");
 		options.addOption("o", true, "output vcf file.  this file will be a vcf formatted file, please add .vcf at the end of the file name [<tumorName>_<normalName>.vcf]");
 		options.addOption("h", false, "print help");
 		options.addOption("d", false, "Should the program be run in debug mode (outputs all)");
@@ -675,6 +677,7 @@ public class VCFMergeAndAnnotate {
 		Integer		f			=	Integer.decode(line.getOptionValue("f", "0"));
 		Integer		F			=	Integer.decode(line.getOptionValue("F", "1284"));
 		AlleleResolver.minAlleleCount = Integer.decode(line.getOptionValue("minAlleleCount", "1"));
+		Integer		maxSize		=	Integer.decode(line.getOptionValue("maxSize", "20"));
 
 		VCFMergeAndAnnotate merger = new VCFMergeAndAnnotate();
 		File vcfoutputFile = new File(outputVCF);
@@ -686,13 +689,13 @@ public class VCFMergeAndAnnotate {
 		} else {
 			resolution = AlleleResolver.ResolutionType.EXPANDING;
 		}
-		merger.run(baminterfaces, Arrays.asList(vcffiles), buffer, fastafile, vcfoutputFile, resolution, padding, null, f, F);
+		merger.run(baminterfaces, Arrays.asList(vcffiles), buffer, fastafile, vcfoutputFile, resolution, padding, null, f, F, maxSize);
 	}
 
 	public void run(List<BAMInterface> baminterfaces, List<File> variantFiles,
 			int buffer, File fastafile, File outputFile,
 			AlleleResolver.ResolutionType resolution, int padding,
-			File sampleInfo, int f, int F) throws Exception {
+			File sampleInfo, int f, int F, int maxSize) throws Exception {
 		List<String> samples = new ArrayList<String>();
 		for (BAMInterface bi : baminterfaces) {
 			samples.add(bi.getSampleName());
@@ -700,7 +703,7 @@ public class VCFMergeAndAnnotate {
 		}
 
 		StateMonitor monitor = new StateMonitor();
-		MultiVCFReader reader = new MultiVCFReader(variantFiles, buffer,
+		MultiVCFReader reader = new MultiVCFReader(variantFiles, buffer, maxSize,
 				fastafile);
 		// VCFWriter writer = new VCFWriter();
 		CARNACSampleGenotyper carnacGenotyper = new CARNACSampleGenotyper();

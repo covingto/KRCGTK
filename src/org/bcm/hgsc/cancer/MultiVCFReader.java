@@ -91,6 +91,7 @@ public class MultiVCFReader {
 	private int currentSequenceRecordIndex = 0;
 	private String lastSource;
 	private VariantContext nextVariantContext;
+	private final int maxSize;
 	
 	static {
 		log.setLevel(Level.ALL);
@@ -169,13 +170,14 @@ public class MultiVCFReader {
 		
 	}
 	
-	MultiVCFReader(List<File> vcfFiles, int buffer, File fastaFile) throws FileNotFoundException, Exception{
-		this(vcfFiles, buffer, new IndexedFastaSequenceFile(fastaFile));
+	MultiVCFReader(List<File> vcfFiles, int buffer, int maxSize, File fastaFile) throws FileNotFoundException, Exception{
+		this(vcfFiles, buffer, maxSize, new IndexedFastaSequenceFile(fastaFile));
 	}
 	
-	MultiVCFReader(List<File> vcfFiles, int buffer, IndexedFastaSequenceFile fastaref) throws Exception{
+	MultiVCFReader(List<File> vcfFiles, int buffer, int maxSize, IndexedFastaSequenceFile fastaref) throws Exception{
 		this.buffer = buffer;
 		this.sequenceDict = fastaref.getSequenceDictionary();
+		this.maxSize = maxSize;
 		if (this.sequenceDict == null){
 			throw new Exception("Fasta sequence dictionary is null");
 		}
@@ -209,7 +211,12 @@ public class MultiVCFReader {
 	
 	private VariantContext _takeNextFromReader(CloseableTribbleIterator<VariantContext> reader){
 		try {
-			return reader.next();
+			while (reader.hasNext()){
+				VariantContext next = reader.next();
+				if (next.getEnd() - next.getStart() > this.maxSize){ continue; }
+				return next;
+			}
+			return null;
 		} catch (Exception e){
 			log.log(Level.SEVERE, "Unacceptable record returned from VCF read from source: " + reader.toString(), e);
 			return null;
