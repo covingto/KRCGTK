@@ -11,6 +11,7 @@ import htsjdk.variant.vcf.VCFInfoHeaderLine;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -112,7 +113,8 @@ public class CARNACSampleGenotyper extends SampleGenotyper{
 		final int leftSliceOffset = start - sliceStart;
 		final int rightSliceOffset = sliceEnd - end;
 		final List<Allele> alleles = new ArrayList<Allele>(alleleset.getAlleles());
-
+		Collections.sort(alleles);
+		
 		// we will be filling in data for each allele for the following values
 		final int arraySize = alleles.size();
 		int[] forwardCoverage = new int[arraySize];

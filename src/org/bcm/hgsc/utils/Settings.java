@@ -3,11 +3,13 @@ package org.bcm.hgsc.utils;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 public class Settings {
+	public static Map<String, String> env = System.getenv();
 	public static int threadCount = 4;
 	public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	public static boolean debug = false;

@@ -1,6 +1,9 @@
 package org.bcm.hgsc.cancer.bed;
 
 public class BEDRegion implements Comparable<BEDRegion> {
+	
+	public static enum OverlapStatus {NONINTERSECTDOWN, NONINTERSECTUP, INTERSECTDOWN, INTERSECTUP, EXACT, NONCONTIG};
+	
 	protected final String chrom;
 	protected final int start;
 	protected final int stop;
@@ -74,6 +77,22 @@ public class BEDRegion implements Comparable<BEDRegion> {
 			}
 		} else {
 			return this.chrom.compareTo(br.chrom);
+		}
+	}
+	
+	public OverlapStatus overlaps(BEDRegion o){
+		if (this.chrom.equals(o.chrom)){
+			if (this.start > o.stop){
+				return OverlapStatus.NONINTERSECTUP;
+			} else if (this.stop < o.start){
+				return OverlapStatus.NONINTERSECTDOWN;
+			} if (this.start >= o.start){
+				return OverlapStatus.INTERSECTUP;
+			} else {
+				return OverlapStatus.INTERSECTDOWN;
+			}
+		} else {
+			return OverlapStatus.NONCONTIG;
 		}
 	}
 

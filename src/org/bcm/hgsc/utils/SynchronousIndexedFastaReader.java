@@ -10,9 +10,9 @@ public class SynchronousIndexedFastaReader {
 		int attempts = 0;
 		while (attempts < 10){
 			try {
-				fasta.reset(); // let's reset twice just to make sure that we got it :)
+				// fasta.reset(); // let's reset twice just to make sure that we got it :)
 				ReferenceSequence result = fasta.getSubsequenceAt(contig, start, stop);
-				fasta.reset();
+				// fasta.reset();
 				return result;
 			} catch(SAMException ex){
 				attempts += 1;
@@ -27,11 +27,11 @@ public class SynchronousIndexedFastaReader {
 	}
 	
 	public static byte[] getBytesAt(IndexedFastaSequenceFile fasta, String contig, long start, long stop ){
-		int attempts = 0;
-		int offset = 0;
-		while (attempts < 10){
-			
-		}
-		throw new SAMException("Unable to load " + contig + "(" + start + ", " + stop + ")");
+		ReferenceSequence seq = getSubsequenceAt(fasta, contig, start, stop);
+		return seq.getBases();
+	}
+	
+	public static String getSeqStringAt(IndexedFastaSequenceFile fasta, String contig, long start, long stop ){
+		return new String(getBytesAt(fasta, contig, start, stop));
 	}
 }

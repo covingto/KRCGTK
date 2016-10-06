@@ -2,6 +2,7 @@ package org.bcm.hgsc.cancer;
 
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -345,8 +346,11 @@ public class VCFMergeAndAnnotate {
 						varAttributes
 								.put("OC", alleleContainer.getCallString());
 						VariantContextBuilder vcbuilder = new VariantContextBuilder();
+						
+						final List<Allele> _alleles = new ArrayList<Allele>(alleles.getAlleles());
+						Collections.sort(_alleles);
 
-						vcbuilder.alleles(alleles.getAlleles());
+						vcbuilder.alleles(_alleles);
 						List<Genotype> genotypes = new ArrayList<Genotype>(
 								sampleReads.size());
 						// do the genotyping
