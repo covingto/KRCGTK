@@ -8,7 +8,7 @@ public class ByteContainer{
 	ByteContainer(Byte[] inbytes){
 		this.bytes = new byte[inbytes.length];
 		for (int i = 0; i < inbytes.length; i++){
-			this.bytes[i] = (byte) inbytes[i];
+			this.bytes[i] = inbytes[i];
 		}
 	}
 	

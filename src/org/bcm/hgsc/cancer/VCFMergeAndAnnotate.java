@@ -1,15 +1,5 @@
 package org.bcm.hgsc.cancer;
 
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.variant.variantcontext.Allele;
-import htsjdk.variant.variantcontext.Genotype;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.VariantContextBuilder;
-import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.VCFHeader;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +28,8 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.bcm.hgsc.cancer.MultiVCFReader.AlleleContainer;
 import org.bcm.hgsc.cancer.utils.CARNACSampleGenotyper;
 import org.bcm.hgsc.cancer.utils.SampleGenotyper;
+import org.bcm.hgsc.cmdline.CommandLineDescription;
+import org.bcm.hgsc.cmdline.CommandLineTool;
 import org.bcm.hgsc.utils.AlleleResolver;
 import org.bcm.hgsc.utils.AlleleResolver.AlleleSet;
 import org.bcm.hgsc.utils.BAMInterface;
@@ -45,6 +37,16 @@ import org.bcm.hgsc.utils.BAMUtils;
 import org.bcm.hgsc.utils.BAMUtils.ConformedRead;
 import org.bcm.hgsc.utils.Settings;
 import org.bcm.hgsc.utils.Utils;
+
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.VCFHeader;
 
 //import org.broadinstitute.variant.variantcontext.writer.
 
@@ -58,6 +60,8 @@ import org.bcm.hgsc.utils.Utils;
  * @author covingto
  * 
  */
+@CommandLineTool("Wheeljack")
+@CommandLineDescription("A universal genotyper that takes multiple bam and vcf files and extracts allele information.")
 public class VCFMergeAndAnnotate {
 	private static Logger log = Logger.getLogger("");
 	public static List<ThreadedAlleleResolver> workers = null;
@@ -616,6 +620,9 @@ public class VCFMergeAndAnnotate {
 		options.addOption("minAlleleCount", true, "Do not report alleles below this minimum value.  " + 
 				"In general it is not recomended to use this because the user should be filtering at a later step." + 
 				"  However, for some technologies, the error mode is so high that a reasonable filter can be implemented.");
+		options.addOption("minAlleleFraction", true, "Do not report alleles below this minimum value taken as allele count / depth.  " + 
+                "In general it is not recomended to use this because the user should be filtering at a later step." + 
+                "  However, for some technologies, the error mode is so high that a reasonable filter can be implemented.");
 		HelpFormatter formatter = new HelpFormatter();
 		CommandLine line = parser.parse(options, args);
 		Settings.debug = line.hasOption("d");
@@ -681,6 +688,7 @@ public class VCFMergeAndAnnotate {
 		Integer		f			=	Integer.decode(line.getOptionValue("f", "0"));
 		Integer		F			=	Integer.decode(line.getOptionValue("F", "1284"));
 		AlleleResolver.minAlleleCount = Integer.decode(line.getOptionValue("minAlleleCount", "1"));
+		AlleleResolver.minAlleleFraction = Float.parseFloat(line.getOptionValue("minAlleleFraction", "0"));
 		Integer		maxSize		=	Integer.decode(line.getOptionValue("maxSize", "20"));
 
 		VCFMergeAndAnnotate merger = new VCFMergeAndAnnotate();
@@ -712,7 +720,7 @@ public class VCFMergeAndAnnotate {
 		// VCFWriter writer = new VCFWriter();
 		CARNACSampleGenotyper carnacGenotyper = new CARNACSampleGenotyper();
 		VCFHeader vcfHeader = new VCFHeader(
-				CARNACSampleGenotyper.getHeaderLines(samples, sampleInfo),
+				SampleGenotyper.getHeaderLines(samples, sampleInfo),
 				samples);
 		IndexedFastaSequenceFile fastaref = new IndexedFastaSequenceFile(
 				fastafile);

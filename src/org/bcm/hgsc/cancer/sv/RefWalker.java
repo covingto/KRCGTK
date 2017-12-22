@@ -141,7 +141,7 @@ public class RefWalker {
 				}
 				
 				if (count > min_reads){
-					double mmval = (double) mm / ((double) count * 100);
+					double mmval = mm / ((double) count * 100);
 					double imval = (double) im / (double) count;
 					double totval = ((double) mm + (im * 100)) / ((double) count * 100);
 				

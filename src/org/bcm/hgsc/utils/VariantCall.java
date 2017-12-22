@@ -90,7 +90,8 @@ public class VariantCall {
 		return true;
 	}
 	
-	public String toString(){
+	@Override
+    public String toString(){
 		return "Chrom; " + this.chrom + " Start; " + this.startpos + " End; " + this.endpos + " Ref; " + this.reference + " Variant; " + this.variant;
 	}
 	

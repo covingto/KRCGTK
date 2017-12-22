@@ -1,18 +1,12 @@
 package org.bcm.hgsc.cancer.sv;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
-import java.util.Map;
-
-import org.json.simple.JSONValue;
 
 public class JunctionDatabaseBuilder {
 	
@@ -89,66 +83,67 @@ public class JunctionDatabaseBuilder {
 			System.exit(11);
 		}
 	    File conffile = new File(args[0]);
-	    
-	    try {
-	      Class.forName("org.sqlite.JDBC");
-	      System.out.println("Opened database successfully");
-	      FileReader fr = new FileReader(conffile);
-	      @SuppressWarnings("unchecked")
-	      Map<String, Object> conf = (Map<String, Object>) JSONValue.parse(fr);
-	      fr.close();
-	      String dbname = (String) conf.get("dbname");
-	      c = DriverManager.getConnection("jdbc:sqlite:" + dbname);
-	      c.setAutoCommit(false); // theoretical performance boost
-	      
-	      @SuppressWarnings("unchecked")
-	      List<Object> settings = (List<Object>) conf.get("settings");
-	      for (Object s : settings){
-	    	  @SuppressWarnings("unchecked")
-			Map<String, Object> m = (Map<String, Object>) s;
-	    	  appendData(c, (String) m.get("source"), (String) m.get("caller"), (String) m.get("conf"), (Long) m.get("buffer"), (String) m.get("platform"));
-	      }
-	      
-	      c.prepareStatement(indexEndsAll).executeUpdate();
-	      c.prepareStatement(indexEndsChr).executeUpdate();
-	      c.prepareStatement(indexEndsPos).executeUpdate();
-	      c.prepareStatement(indexEndsH).executeUpdate();
-	      c.prepareStatement(indexEndsL).executeUpdate();
-	      c.prepareStatement(indexJunctionLkeys).executeUpdate();
-	      c.prepareStatement(indexJunctionRkeys).executeUpdate();
-	      c.prepareStatement(indexJunctionsCaller).executeUpdate();
-	      
-	      System.out.println("Creating junction table");
-	      c.prepareStatement(createJunctionTable).executeUpdate();
-	      
-	      c.prepareStatement(indexFullJunctionLkey).executeUpdate();
-	      c.prepareStatement(indexFullJunctionRkey).executeUpdate();
-	      c.prepareStatement(indexFullJunctionLloc).executeUpdate();
-	      c.prepareStatement(indexFullJunctionRloc).executeUpdate();
-	      c.prepareStatement(indexFullJunctionLc).executeUpdate();
-	      c.prepareStatement(indexFullJunctionRc).executeUpdate();
-	      c.prepareStatement(indexFullJunctionLp).executeUpdate();
-	      c.prepareStatement(indexFullJunctionRp).executeUpdate();
-	      c.prepareStatement(indexFullJunctionLkloc).executeUpdate();
-	      c.prepareStatement(indexFullJunctionRkloc).executeUpdate();
-	      
-	      System.out.println("Creating crosshits");
-	      c.prepareStatement(createCrossHits).executeUpdate();
-	      
-	      c.prepareStatement(indexCrossPkey).executeUpdate();
-	      c.prepareStatement(indexCrossHkey).executeUpdate();
-	      c.prepareStatement(indexCrossHtypeL).executeUpdate();
-	      c.prepareStatement(indexCrossHtypeR).executeUpdate();
-	      
-	      System.out.println("Committing data to database");
-	      
-	      c.commit();
-	      c.close();
-	    } catch ( Exception e ) {
-	      System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-	      System.exit(0);
-	    }
-	    System.out.println("Database generated successfully.");
+//	    
+//  ## commented because this may be refactored to use Hibernate in the future.	    
+//	    try {
+//	      Class.forName("org.sqlite.JDBC");
+//	      System.out.println("Opened database successfully");
+//	      FileReader fr = new FileReader(conffile);
+//	      @SuppressWarnings("unchecked")
+//	      Map<String, Object> conf = (Map<String, Object>) JSONValue.parse(fr);
+//	      fr.close();
+//	      String dbname = (String) conf.get("dbname");
+//	      c = DriverManager.getConnection("jdbc:sqlite:" + dbname);
+//	      c.setAutoCommit(false); // theoretical performance boost
+//	      
+//	      @SuppressWarnings("unchecked")
+//	      List<Object> settings = (List<Object>) conf.get("settings");
+//	      for (Object s : settings){
+//	    	  @SuppressWarnings("unchecked")
+//			Map<String, Object> m = (Map<String, Object>) s;
+//	    	  appendData(c, (String) m.get("source"), (String) m.get("caller"), (String) m.get("conf"), (Long) m.get("buffer"), (String) m.get("platform"));
+//	      }
+//	      
+//	      c.prepareStatement(indexEndsAll).executeUpdate();
+//	      c.prepareStatement(indexEndsChr).executeUpdate();
+//	      c.prepareStatement(indexEndsPos).executeUpdate();
+//	      c.prepareStatement(indexEndsH).executeUpdate();
+//	      c.prepareStatement(indexEndsL).executeUpdate();
+//	      c.prepareStatement(indexJunctionLkeys).executeUpdate();
+//	      c.prepareStatement(indexJunctionRkeys).executeUpdate();
+//	      c.prepareStatement(indexJunctionsCaller).executeUpdate();
+//	      
+//	      System.out.println("Creating junction table");
+//	      c.prepareStatement(createJunctionTable).executeUpdate();
+//	      
+//	      c.prepareStatement(indexFullJunctionLkey).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionRkey).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionLloc).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionRloc).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionLc).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionRc).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionLp).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionRp).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionLkloc).executeUpdate();
+//	      c.prepareStatement(indexFullJunctionRkloc).executeUpdate();
+//	      
+//	      System.out.println("Creating crosshits");
+//	      c.prepareStatement(createCrossHits).executeUpdate();
+//	      
+//	      c.prepareStatement(indexCrossPkey).executeUpdate();
+//	      c.prepareStatement(indexCrossHkey).executeUpdate();
+//	      c.prepareStatement(indexCrossHtypeL).executeUpdate();
+//	      c.prepareStatement(indexCrossHtypeR).executeUpdate();
+//	      
+//	      System.out.println("Committing data to database");
+//	      
+//	      c.commit();
+//	      c.close();
+//	    } catch ( Exception e ) {
+//	      System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+//	      System.exit(0);
+//	    }
+//	    System.out.println("Database generated successfully.");
 	}
 
 	private static void appendData(Connection c, String source, String caller, String conf, long buffer, String platform) throws Exception {

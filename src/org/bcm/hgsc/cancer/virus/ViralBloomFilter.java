@@ -31,8 +31,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.Parser;
 import org.bcm.hgsc.utils.BAMInterface;
 import org.bcm.hgsc.utils.Settings;
-import org.json.simple.JSONValue;
-
 import com.skjegstad.utils.BloomFilter;
 
 public class ViralBloomFilter {
@@ -130,7 +128,8 @@ public class ViralBloomFilter {
 		FileReader fr;
 		fr = new FileReader(config);
 
-		Map<String, Object> conf = (Map<String, Object>) JSONValue.parse(fr);
+		// TODO: convert to Gson.
+		Map<String, Object> conf = null; // (Map<String, Object>) JSONValue.parse(fr);
 		fr.close();
 		
 		List<String> targetGenomes = (List<String>) conf.get("genomes");

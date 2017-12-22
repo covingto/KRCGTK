@@ -732,7 +732,19 @@ public class BAMUtils {
 		public boolean hasNext() {
 			return this.sri.hasNext();
 		}
-
+		
+		public String getChr() {
+		    return this.chr;
+		}
+		
+		public int getStart() {
+		    return this.start;
+		}
+		
+		public int getEnd() {
+		    return this.end;
+		}
+		
 		@Override
 		public ConformedRead next() {
 			try{

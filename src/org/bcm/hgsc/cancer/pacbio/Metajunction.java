@@ -94,7 +94,8 @@ public class Metajunction {
 		return Math.round(dist / (double) this.junctions.size());
 	}
 	
-	public String toString(){
+	@Override
+    public String toString(){
 		// sanity check that we are writing positive junctions
 		// at some point it was noticed that negative junctions were reported, at the approximate location of the proper junction (just in negative space)
 		// may be commented later with a report

@@ -42,7 +42,7 @@ public class BaseQualityAdjust {
 			byte[] orgQualities = r.getBaseQualities();
 			byte[] newQualities = new byte[orgQualities.length];
 			for (int i = 0; i < orgQualities.length; i++){
-				newQualities[i] = (byte) ((byte) orgQualities[i] - qualOffset);
+				newQualities[i] = (byte) (orgQualities[i] - qualOffset);
 			}
 			r.setBaseQualities(newQualities);
 			writer.addAlignment(r);

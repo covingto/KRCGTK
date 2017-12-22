@@ -6,7 +6,8 @@ public class BlankSyntheticReference extends SyntheticReference {
 		this.setCantClip();
 	}
 	
-	public SyntheticReference clip(Integer leftclip) throws ExcessiveClipException, DoubleClipException {
+	@Override
+    public SyntheticReference clip(Integer leftclip) throws ExcessiveClipException, DoubleClipException {
 		return this;
 	}
 }

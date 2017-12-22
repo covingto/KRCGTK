@@ -36,7 +36,8 @@ public class Chromosome {
 		return this.chrnum - test.chrnum;
 	}
 	
-	public String toString(){
+	@Override
+    public String toString(){
 		return this.chrorg;
 	}
 	

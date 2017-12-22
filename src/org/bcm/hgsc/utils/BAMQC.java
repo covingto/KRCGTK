@@ -1,13 +1,5 @@
 package org.bcm.hgsc.utils;
 
-import htsjdk.samtools.CigarOperator;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMRecordIterator;
-import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -21,8 +13,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
 
-import net.minidev.json.JSONObject;
-
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -31,7 +21,18 @@ import org.apache.commons.cli.Parser;
 import org.apache.commons.lang3.StringUtils;
 import org.bcm.hgsc.utils.BAMUtils.ConformedRead;
 
+import com.google.gson.Gson;
+
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+
 public class BAMQC {
+    private static final Gson gson = new Gson();
 	private final Map<String, Integer> cigarMap1 = new HashMap<String, Integer>();
 	private final Map<String, Integer> cigarMap2 = new HashMap<String, Integer>();
 	private final Map<String, Integer> varMap1 = new HashMap<String, Integer>();
@@ -90,18 +91,21 @@ public class BAMQC {
 		this.printMaps(output);
 	}
 	
-	public void printMaps(File output){
+	@SuppressWarnings("unchecked")
+    public void printMaps(File output){
 		log.info("CIGAR1 KEYS: " + StringUtils.join(this.cigarMap1.keySet()));
 		log.info("VARMAP1: " + StringUtils.join(this.varMap1.keySet()));
 		
-		JSONObject value = new JSONObject();
+		Map<String, Object> value = new HashMap<String, Object>();
+		
+		// JSONObject value = new JSONObject();
 		value.put("r1_cigar", this.cigarMap1);
 		value.put("r2_cigar", this.cigarMap2);
 		value.put("r1_vars", this.varMap1);
 		value.put("r2_vars", this.varMap2);
 		try {
 			PrintWriter out = new PrintWriter(output.getAbsolutePath());
-			out.write(value.toJSONString());
+			out.write(gson.toJson(value));
 			out.flush();
 			out.close();
 		} catch (FileNotFoundException e) {

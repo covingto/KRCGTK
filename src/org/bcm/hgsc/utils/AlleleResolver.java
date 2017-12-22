@@ -35,6 +35,7 @@ public class AlleleResolver {
 		EXPANDING, MINIMALEXPANDING, NOEXPANDING
 	}
 	public static int minAlleleCount = 2;
+    public static float minAlleleFraction = 0;
 	public static class AlleleSet{
 		private static Logger log = Logger.getLogger(AlleleSet.class.getName());
 		private final Set<Allele> alleles;
@@ -381,7 +382,7 @@ public class AlleleResolver {
 			if (referenceAllele.basesMatch(entry.getKey())){
 				continue;
 			}
-			if (entry.getValue() >= AlleleResolver.minAlleleCount){
+			if (entry.getValue() >= AlleleResolver.minAlleleCount && ((float) entry.getValue() / (float) reads.size()) > AlleleResolver.minAlleleFraction){
 				newAlleles.add(entry.getKey());
 			} 
 			else {

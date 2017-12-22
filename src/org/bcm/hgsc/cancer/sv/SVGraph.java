@@ -50,7 +50,8 @@ public class SVGraph implements Serializable{
 	private class MergerWorker implements Runnable {
 		private final List<String> gjl;
 		MergerWorker(List<String> gjl){ this.gjl = gjl; }
-		public void run(){
+		@Override
+        public void run(){
 			System.err.println("Matching up " + gjl.size() + " records");
 			for (String js : gjl){
 				GraphJunction j = junctions.get(js);
@@ -71,7 +72,8 @@ public class SVGraph implements Serializable{
 			this.gjl = list;
 			this.ck = ck;
 		}
-		public void run(){
+		@Override
+        public void run(){
 			//System.out.println("Matching down junctions from caller; " + SVGraph.callers.get(ck).getName());
 			List<GraphJunction> callerJunctionsASorted = new ArrayList<GraphJunction>();
 			List<GraphJunction> callerJunctionsBSorted = new ArrayList<GraphJunction>();
@@ -536,7 +538,7 @@ public class SVGraph implements Serializable{
 			}
 			ebases = ebases + oj.ebases();
 		}
-		return new GraphJunction(chra, (long) posa / oldJunctions.size(), chrb, (long) posb / oldJunctions.size(), oa, ob, ebases / oldJunctions.size(), caller );
+		return new GraphJunction(chra, posa / oldJunctions.size(), chrb, posb / oldJunctions.size(), oa, ob, ebases / oldJunctions.size(), caller );
 	}
 
 	private static void _popMatchDownGJSet(Set<GraphJunction> thisSet, GraphJunction j, List<GraphJunction> callerJunctionsASorted, List<GraphJunction> callerJunctionsBSorted){

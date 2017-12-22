@@ -2,7 +2,6 @@ package org.bcm.hgsc.utils;
 
 import java.io.File;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
 import java.util.Set;

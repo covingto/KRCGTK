@@ -10,7 +10,6 @@ import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
-import org.json.simple.JSONValue;
 import org.xml.sax.SAXException;
 
 public class AppendSVGraph {
@@ -68,7 +67,8 @@ public class AppendSVGraph {
 			fr = new FileReader(conffile);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> conf = (Map<String, Object>) JSONValue.parse(fr);
+			// TODO: convert to Gson.
+			Map<String, Object> conf = null; // (Map<String, Object>) JSONValue.parse(fr);
 			fr.close();
 			buildGraph(theGraph, conf);
 
